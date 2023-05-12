@@ -10,6 +10,6 @@ const Auth = () => {
             <SignUpForm></SignUpForm>
         </div>
     );
-}
+} 
 
 export default Auth;
