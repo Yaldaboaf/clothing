@@ -1,4 +1,6 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useReducer } from "react";
+
+import { createAction } from '../utils/reducer/reducer.utils';
 
 export const addCartItem = (cartItems, productToAdd) => {
   const existingCartItem = cartItems.find((cartItem) => 
@@ -38,39 +40,97 @@ export const CartContext = createContext({
   addItemToCart: () => {},
   removeItemFromCart: () => {},
   clearItemFromCart: () => {},
-  cartItemsSum: 0,
   cartCount: 0,
   cartPriceCount: 0,
 });
 
+const INITIAL_CART_STATE ={
+  cartCount: 0,
+  cartPriceCount: 0,
+  isCartOpen: false, 
+  cartItems: [],
+}
+
+const CART_ACTION_TYPES = {
+  SET_CART_ITEMS: "SET_CART_ITEMS",
+  SET_IS_CART_OPEN: "SET_IS_CART_OPEN" 
+}
+
+const cartReducer = (state, action) => {
+  const { type, payload } = action;
+
+  switch(type){
+    case CART_ACTION_TYPES.SET_CART_ITEMS: 
+        return {
+          ...state,
+          ...payload
+        }
+    case CART_ACTION_TYPES.SET_IS_CART_OPEN:
+        return {
+          ...state,
+          isCartOpen: payload
+        }
+    default: 
+        throw new Error (`Unhandled type ${type} in cartReducer`);
+  }
+}
+
 export const CartProvider = ({children}) => {
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
-  const [cartCount, setCartCount] = useState(0);
-  const [cartPriceCount, setCartPriceCount] = useState(0);
+  // const [isCartOpen, setIsCartOpen] = useState(false);
+  // const [cartItems, setCartItems] = useState([]);
+  // const [cartCount, setCartCount] = useState(0);
+  // const [cartPriceCount, setCartPriceCount] = useState(0);
 
+  const [ { cartPriceCount, cartCount, cartItems, isCartOpen }, dispatch ] = useReducer( cartReducer, INITIAL_CART_STATE);
 
-  useEffect(() => {
-    const newCartCount = cartItems.reduce((total, cartItem) => total + cartItem.quantity, 0);
-    setCartCount(newCartCount);
-  }, [cartItems])
+  // useEffect(() => {
+  //   const newCartCount = cartItems.reduce((total, cartItem) => total + cartItem.quantity, 0);
+  //   setCartCount(newCartCount);
+  // }, [cartItems])
 
-  useEffect(() => {
-    const newCartPriceCount = cartItems.reduce((total, cartItem) => total + cartItem.quantity * cartItem.price, 0);
-    setCartPriceCount(newCartPriceCount);
-  }, [cartItems])
+  // useEffect(() => {
+  //   const newCartPriceCount = cartItems.reduce((total, cartItem) => total + cartItem.quantity * cartItem.price, 0);
+  //   setCartPriceCount(newCartPriceCount);
+  // }, [cartItems])
 
+  const updateCartItemsReducer = (newCartItems) => {
+    const newCartCount = newCartItems.reduce(
+      (total, cartItem) => total + cartItem.quantity,
+      0
+    );
+    const newCartPriceCount = newCartItems.reduce(
+      (total, cartItem) => total + cartItem.quantity * cartItem.price,
+      0
+    );
+    dispatch(
+      {
+        type: CART_ACTION_TYPES.SET_CART_ITEMS, payload:
+        { 
+          cartItems: newCartItems,
+          cartPriceCount: newCartPriceCount,
+          cartCount: newCartCount
+        }
+      }
+    );
+  }
+  
+  const setIsCartOpen = (bool) => {
+    dispatch( createAction(CART_ACTION_TYPES.SET_IS_CART_OPEN, bool))
+  }
 
-  const addItemToCart = (product) => {
-    setCartItems(addCartItem(cartItems, product));
+  const addItemToCart = (cartItemToAdd) => {
+    const newCartItems = addCartItem(cartItems, cartItemToAdd);
+    updateCartItemsReducer(newCartItems);
   }
 
   const removeItemFromCart = (cartItemToRemove) => {
-    setCartItems(removeCartItem(cartItems, cartItemToRemove));
+    const newCartItems = removeCartItem(cartItems, cartItemToRemove);
+    updateCartItemsReducer(newCartItems);
   }
 
   const clearItemFromCart = (cartItemToClear) => {
-    setCartItems(clearCartItem(cartItems, cartItemToClear));
+    const newCartItems = clearCartItem(cartItems, cartItemToClear);
+    updateCartItemsReducer(newCartItems);
   }
 
   const value = { isCartOpen, setIsCartOpen, cartItems , addItemToCart, cartCount, removeItemFromCart, clearItemFromCart, cartPriceCount };
